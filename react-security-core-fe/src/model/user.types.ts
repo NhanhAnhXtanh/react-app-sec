@@ -1,5 +1,5 @@
 export type AdminUser = {
-  id: number | null;
+  id: string | null;
   login?: string;
   firstName?: string | null;
   lastName?: string | null;
