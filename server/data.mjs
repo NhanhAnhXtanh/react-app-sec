@@ -1,0 +1,32 @@
+export const companies = [
+  { id: 'c1', code: 'ACME', name: 'Acme Corporation', taxCode: '0101010101', status: 'ACTIVE' },
+  { id: 'c2', code: 'GLOBEX', name: 'Globex Inc.', taxCode: '0202020202', status: 'ACTIVE' },
+  { id: 'c3', code: 'INITECH', name: 'Initech', taxCode: '0303030303', status: 'INACTIVE' },
+  { id: 'c4', code: 'UMBRELLA', name: 'Umbrella Corp', taxCode: '0404040404', status: 'ACTIVE' },
+  { id: 'c5', code: 'STARK', name: 'Stark Industries', taxCode: '0505050505', status: 'ACTIVE' },
+  { id: 'c6', code: 'WAYNE', name: 'Wayne Enterprises', taxCode: '0606060606', status: 'ACTIVE' },
+  { id: 'c7', code: 'CYBER', name: 'Cyberdyne Systems', taxCode: '0707070707', status: 'INACTIVE' },
+  { id: 'c8', code: 'OSCORP', name: 'Oscorp', taxCode: '0808080808', status: 'ACTIVE' },
+  { id: 'c9', code: 'TYRELL', name: 'Tyrell Corporation', taxCode: '0909090909', status: 'INACTIVE' },
+  { id: 'c10', code: 'PIEDPIPER', name: 'Pied Piper', taxCode: '1010101010', status: 'ACTIVE' },
+  { id: 'c11', code: 'HOOLI', name: 'Hooli', taxCode: '1111111111', status: 'ACTIVE' },
+  { id: 'c12', code: 'MASSIVE', name: 'Massive Dynamic', taxCode: '1212121212', status: 'INACTIVE' },
+];
+
+export const departments = [
+  { id: 'd1', companyId: 'c1', companyName: 'Acme Corporation', code: 'ENG', name: 'Engineering', managerName: 'Alice', status: 'ACTIVE' },
+  { id: 'd2', companyId: 'c1', companyName: 'Acme Corporation', code: 'SAL', name: 'Sales', managerName: 'Bob', status: 'ACTIVE' },
+  { id: 'd3', companyId: 'c1', companyName: 'Acme Corporation', code: 'HR', name: 'Human Resources', managerName: 'Carol', status: 'INACTIVE' },
+  { id: 'd4', companyId: 'c2', companyName: 'Globex Inc.', code: 'RND', name: 'Research', managerName: 'Dan', status: 'ACTIVE' },
+  { id: 'd5', companyId: 'c2', companyName: 'Globex Inc.', code: 'OPS', name: 'Operations', managerName: 'Eve', status: 'ACTIVE' },
+  { id: 'd6', companyId: 'c3', companyName: 'Initech', code: 'IT', name: 'IT Support', managerName: 'Frank', status: 'INACTIVE' },
+  { id: 'd7', companyId: 'c4', companyName: 'Umbrella Corp', code: 'BIO', name: 'Biotech Lab', managerName: 'Grace', status: 'ACTIVE' },
+  { id: 'd8', companyId: 'c5', companyName: 'Stark Industries', code: 'RND', name: 'R&D', managerName: 'Hank', status: 'ACTIVE' },
+  { id: 'd9', companyId: 'c5', companyName: 'Stark Industries', code: 'PR', name: 'Public Relations', managerName: 'Ivy', status: 'ACTIVE' },
+  { id: 'd10', companyId: 'c6', companyName: 'Wayne Enterprises', code: 'SEC', name: 'Security', managerName: 'Jack', status: 'ACTIVE' },
+  { id: 'd11', companyId: 'c6', companyName: 'Wayne Enterprises', code: 'FIN', name: 'Finance', managerName: 'Karen', status: 'INACTIVE' },
+  { id: 'd12', companyId: 'c7', companyName: 'Cyberdyne Systems', code: 'AI', name: 'AI Division', managerName: 'Leo', status: 'ACTIVE' },
+  { id: 'd13', companyId: 'c8', companyName: 'Oscorp', code: 'CHEM', name: 'Chemistry', managerName: 'Mia', status: 'ACTIVE' },
+  { id: 'd14', companyId: 'c10', companyName: 'Pied Piper', code: 'ENG', name: 'Engineering', managerName: 'Nate', status: 'ACTIVE' },
+  { id: 'd15', companyId: 'c11', companyName: 'Hooli', code: 'XYZ', name: 'Hooli/XYZ', managerName: 'Olivia', status: 'INACTIVE' },
+];

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "GSD-style workflow preferences for this repository",
+  "version": 1,
+  "projectName": "tanstack-table-template",
+  "language": "vi",
+  "planningDir": ".planning",
+  "toggles": {
+    "autoCommit": false,
+    "useWorktrees": false
+  },
+  "stack": {
+    "frontend": "React 18 + Vite + TypeScript",
+    "table": "@tanstack/react-table",
+    "data": "@tanstack/react-query",
+    "forms": "@tanstack/react-form",
+    "routing": "react-router-dom",
+    "styling": "Tailwind CSS"
+  },
+  "notes": "Form UX uses nested routes + URL list state; Zustand optional per REQUIREMENTS.md."
+}
