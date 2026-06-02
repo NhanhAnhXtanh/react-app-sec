@@ -1,0 +1,4 @@
+[2m3:02:27 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/authenticate[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)

@@ -1,0 +1,875 @@
+Dưới đây là prompt kiến trúc chi tiết để anh đưa cho Claude:
+
+# Yêu cầu xây dựng React DataCollection + TanStack Table Framework
+
+Bạn là chuyên gia ReactJS, TypeScript, TanStack Table, React Query.
+
+Hãy xây dựng khung ứng dụng frontend theo kiến trúc sau.
+
+## 1. Mục tiêu
+
+Xây dựng framework quản lý bảng dữ liệu reusable, inspired by Jmix:
+
+- `DataCollection<T>`: quản lý dữ liệu, loading, paging, sorting, filtering, selection
+- `AppTable<T>`: adapter binding `DataCollection<T>` vào TanStack Table
+- `CompanyTable`, `DepartmentTable`: table nghiệp vụ, tự render UI table
+- `CompanyScreen`, `DepartmentScreen`: orchestration màn hình
+
+Không tạo generic `DataTable<T>` dùng trực tiếp ở screen.
+
+---
+
+# 2. Kiến trúc tổng thể
+
+```txt
+CompanyScreen
+ └── CompanyTable
+      ├── useDataCollection<Company>
+      ├── useAppTable<Company>
+      ├── createCompanyColumns()
+      ├── CompanyTableToolbar
+      ├── tự render <table>
+      └── TablePagination
+
+DepartmentScreen
+ └── DepartmentTable
+      ├── useDataCollection<Department>
+      ├── useAppTable<Department>
+      ├── createDepartmentColumns()
+      ├── DepartmentTableToolbar
+      ├── tự render <table>
+      └── TablePagination
+3. Nguyên tắc thiết kế
+3.1 useDataCollection<T>
+
+Chịu trách nhiệm:
+
+- React Query loading data
+- pagination state
+- sorting state
+- columnFilters state
+- globalFilter state
+- rowSelection state
+- selectedIds
+- selectedItems
+- tableMode config
+- params build cho API
+
+Không gọi useReactTable trong hook này.
+
+3.2 useAppTable<T>
+
+Chịu trách nhiệm:
+
+- nhận DataCollection
+- nhận ColumnDef<T>
+- bind state vào TanStack Table
+- bind manualPagination/manualSorting/manualFiltering
+- return table instance
+3.3 CompanyTable / DepartmentTable
+
+Chịu trách nhiệm:
+
+- gọi useDataCollection<T>
+- gọi useAppTable<T>
+- khai báo columns
+- khai báo mutation delete/create/update nếu cần
+- render toolbar
+- tự render <table>
+- render pagination
+3.4 Screen
+
+Chịu trách nhiệm:
+
+- layout màn hình
+- quản lý dialog create/edit
+- truyền event xuống table
+- không chứa logic TanStack Table
+4. Tech stack
+
+Sử dụng:
+
+React 18+
+TypeScript
+@tanstack/react-query
+@tanstack/react-table
+Vite
+
+Có thể dùng Shadcn , Tailwind
+
+5. Domain model
+
+Tạo file:
+
+src/features/company/company.types.ts
+src/features/department/department.types.ts
+src/shared/table/table.types.ts
+table.types.ts
+export type PageRequest = {
+  pageIndex: number;
+  pageSize: number;
+  sorting?: { id: string; desc: boolean }[];
+  filters?: { id: string; value: unknown }[];
+  keyword?: string;
+};
+
+export type PageResponse<T> = {
+  items: T[];
+  total: number;
+};
+
+export type TableModeOptions = {
+  manualPagination?: boolean;
+  manualSorting?: boolean;
+  manualFiltering?: boolean;
+};
+company.types.ts
+export type Company = {
+  id: string;
+  code: string;
+  name: string;
+  taxCode?: string;
+  status: 'ACTIVE' | 'INACTIVE';
+};
+department.types.ts
+export type Department = {
+  id: string;
+  companyId: string;
+  companyName: string;
+  code: string;
+  name: string;
+  managerName?: string;
+  status: 'ACTIVE' | 'INACTIVE';
+};
+6. API service
+
+Tạo:
+
+src/features/company/company.api.ts
+src/features/department/department.api.ts
+
+Yêu cầu có:
+
+search(params: PageRequest): Promise<PageResponse<T>>
+create(body: Partial<T>): Promise<T>
+update(id: string, body: Partial<T>): Promise<T>
+delete(id: string): Promise<void>
+
+Có thể dùng mock API bằng setTimeout và array in-memory để app chạy được ngay.
+
+7. useDataCollection<T>
+
+Tạo file:
+
+src/shared/datacollection/useDataCollection.ts
+
+Yêu cầu code:
+
+type UseDataCollectionOptions<T> = {
+  queryKey: unknown[];
+  queryFn: (params: PageRequest) => Promise<PageResponse<T>>;
+  getRowId: (row: T) => string;
+  tableMode?: TableModeOptions;
+};
+
+Return object bắt buộc có:
+
+{
+  query,
+  items,
+  total,
+
+  pagination,
+  setPagination,
+
+  sorting,
+  setSorting,
+
+  columnFilters,
+  setColumnFilters,
+
+  globalFilter,
+  setGlobalFilter,
+
+  rowSelection,
+  setRowSelection,
+
+  selectedIds,
+  selectedItems,
+
+  tableMode,
+  params,
+}
+
+Logic:
+
+const params = {
+  pageIndex,
+  pageSize,
+  sorting,
+  filters,
+  keyword,
+}
+
+React Query:
+
+useQuery({
+  queryKey: [...queryKey, params],
+  queryFn: () => queryFn(params),
+  placeholderData: (previous) => previous,
+})
+
+Default table mode:
+
+manualPagination: true
+manualSorting: true
+manualFiltering: true
+8. useAppTable<T>
+
+Tạo file:
+
+src/shared/table/useAppTable.ts
+
+Yêu cầu:
+
+type UseAppTableOptions<T> = {
+  dc: ReturnType<typeof useDataCollection<T>>;
+  columns: ColumnDef<T>[];
+  getRowId: (row: T) => string;
+};
+
+Bên trong dùng:
+
+useReactTable({
+  data: dc.items,
+  columns,
+  state: {
+    pagination: dc.pagination,
+    sorting: dc.sorting,
+    columnFilters: dc.columnFilters,
+    globalFilter: dc.globalFilter,
+    rowSelection: dc.rowSelection,
+  },
+  manualPagination: dc.tableMode.manualPagination,
+  manualSorting: dc.tableMode.manualSorting,
+  manualFiltering: dc.tableMode.manualFiltering,
+  rowCount: dc.total,
+  getRowId,
+  onPaginationChange: dc.setPagination,
+  onSortingChange: dc.setSorting,
+  onColumnFiltersChange: dc.setColumnFilters,
+  onGlobalFilterChange: dc.setGlobalFilter,
+  onRowSelectionChange: dc.setRowSelection,
+  getCoreRowModel: getCoreRowModel(),
+})
+9. TablePagination
+
+Tạo file:
+
+src/shared/table/TablePagination.tsx
+
+Yêu cầu:
+
+<TablePagination table={table} />
+
+Có:
+
+Prev
+Next
+Page current
+Page size selector
+Total rows
+10. Company module
+
+Tạo cấu trúc:
+
+src/features/company/
+ ├── company.types.ts
+ ├── company.api.ts
+ ├── company.columns.tsx
+ ├── CompanyTableToolbar.tsx
+ ├── CompanyTable.tsx
+ └── CompanyScreen.tsx
+Company columns
+
+createCompanyColumns() nhận:
+
+{
+  onEdit?: (item: Company) => void;
+  onDelete?: (item: Company) => void;
+}
+
+Columns:
+
+select checkbox
+code
+name
+taxCode
+status
+actions
+CompanyTableToolbar
+
+Props:
+
+{
+  keyword: string;
+  selectedCount: number;
+  onKeywordChange(value: string): void;
+  onCreate?: () => void;
+  onDeleteSelected?: () => void;
+}
+CompanyTable
+
+Yêu cầu:
+
+- gọi useDataCollection<Company>
+- queryKey ['companies']
+- queryFn companyApi.search
+- tableMode có thể custom
+- tạo delete mutation
+- invalidateQueries ['companies'] sau delete
+- tạo columns bằng createCompanyColumns
+- gọi useAppTable
+- tự render table bằng table.getHeaderGroups() và table.getRowModel()
+- hiển thị loading/error/empty
+- render TablePagination
+11. Department module
+
+Tạo cấu trúc:
+
+src/features/department/
+ ├── department.types.ts
+ ├── department.api.ts
+ ├── department.columns.tsx
+ ├── DepartmentTableToolbar.tsx
+ ├── DepartmentTable.tsx
+ └── DepartmentScreen.tsx
+Department columns
+
+createDepartmentColumns() nhận:
+
+{
+  onEdit?: (item: Department) => void;
+  onDelete?: (item: Department) => void;
+}
+
+Columns:
+
+select checkbox
+companyName
+code
+name
+managerName
+status
+actions
+DepartmentTable Props
+type DepartmentTableProps = {
+  companyId?: string;
+  onEdit?: (item: Department) => void;
+  onCreate?: () => void;
+};
+DepartmentTable
+
+Yêu cầu:
+
+- gọi useDataCollection<Department>
+- queryKey ['departments', companyId ?? 'all']
+- queryFn departmentApi.search
+- nếu companyId có giá trị thì append filter { id: 'companyId', value: companyId }
+- tạo delete mutation
+- invalidateQueries ['departments'] sau delete
+- tạo columns bằng createDepartmentColumns
+- gọi useAppTable
+- tự render table
+- hiển thị loading/error/empty
+- render TablePagination
+12. Screen
+CompanyScreen
+
+Yêu cầu:
+
+- hiển thị title Company Management
+- render CompanyTable
+- quản lý editingCompany state
+- khi onEdit thì setEditingCompany
+- khi onCreate thì mở create dialog hoặc hiển thị placeholder
+DepartmentScreen
+
+Yêu cầu:
+
+- hiển thị title Department Management
+- có input companyId để filter DepartmentTable
+- render DepartmentTable companyId={companyId}
+- quản lý editingDepartment state
+13. Render table thủ công
+
+Không tạo Generic DataTable<T>.
+
+Trong từng CompanyTable và DepartmentTable, render trực tiếp:
+
+<table>
+  <thead>
+    {table.getHeaderGroups().map(...)}
+  </thead>
+
+  <tbody>
+    {table.getRowModel().rows.map(...)}
+  </tbody>
+</table>
+
+Sử dụng:
+
+flexRender
+header.column.getToggleSortingHandler()
+header.column.getIsSorted()
+row.getVisibleCells()
+row.getIsSelected()
+14. Yêu cầu chất lượng code
+
+Bắt buộc:
+
+- TypeScript strict-friendly
+- Không dùng any nếu không cần
+- Tách file rõ ràng
+- Hook reusable
+- Không lặp useReactTable trong CompanyTable/DepartmentTable
+- Không dùng generic DataTable trực tiếp ở Screen
+- Mutation invalidate đúng queryKey
+- getRowId dùng business id
+- selectedItems tính từ rowSelection
+15. Output mong muốn
+
+Hãy sinh toàn bộ code khung ứng dụng gồm:
+
+src/main.tsx
+src/App.tsx
+src/queryClient.ts
+src/shared/table/table.types.ts
+src/shared/datacollection/useDataCollection.ts
+src/shared/table/useAppTable.ts
+src/shared/table/TablePagination.tsx
+src/features/company/*
+src/features/department/*
+
+Ứng dụng phải chạy được với mock API in-memory.
+
+
+Chốt ngắn gọn: **DataCollection quản lý dữ liệu, AppTable bind TanStack, Table nghiệp vụ tự render UI.**
+
+
+Dưới đây là prompt bổ sung cho Claude:
+
+# Bổ sung kiến trúc Detail/Edit/New Form cho DataCollection + TanStack Table
+
+Tiếp tục từ kiến trúc hiện tại:
+
+```txt
+useDataCollection<T>
+useAppTable<T>
+CompanyTable / DepartmentTable
+CompanyScreen / DepartmentScreen
+TanStack Query
+TanStack Table
+TanStack Form
+1. Mục tiêu bổ sung
+
+Cần thêm đầy đủ tính năng:
+
+- Detail form
+- Edit form
+- New form
+- Form hiển thị dạng Dialog
+- Form hiển thị dạng Fullscreen overlay
+- Khi đóng form quay lại list phải giữ nguyên:
+  - pageIndex
+  - pageSize
+  - filter
+  - keyword
+  - sorting
+  - rowSelection nếu hợp lý
+- Khi tạo mới thành công:
+  - dòng mới phải append vào trang hiện tại
+  - không invalidate/refetch ngay
+- Khi edit thành công:
+  - replace item trong trang hiện tại
+- Khi delete thành công:
+  - remove item khỏi trang hiện tại
+- Ưu tiên dùng Zustand nếu cần quản lý UI state/form state
+2. Kiến trúc mong muốn
+
+Không dùng generic DataTable<T> ở screen.
+
+CompanyScreen
+ └── CompanyTable
+      ├── useDataCollection<Company>
+      ├── useAppTable<Company>
+      ├── createCompanyColumns()
+      ├── CompanyTableToolbar
+      ├── tự render <table>
+      ├── CompanyFormHost
+      └── CompanyForm
+
+DepartmentScreen
+ └── DepartmentTable
+      ├── useDataCollection<Department>
+      ├── useAppTable<Department>
+      ├── createDepartmentColumns()
+      ├── DepartmentTableToolbar
+      ├── tự render <table>
+      ├── DepartmentFormHost
+      └── DepartmentForm
+3. Form mode và presentation mode
+
+Tạo shared types:
+
+export type FormMode = 'create' | 'edit' | 'view';
+
+export type FormPresentation = 'dialog' | 'fullscreen';
+
+export type EntityFormState<T> = {
+  open: boolean;
+  mode: FormMode;
+  presentation: FormPresentation;
+  item: T | null;
+};
+4. Zustand UI store cho từng màn hình
+
+Ưu tiên tạo private store theo feature, không dùng global store quá rộng.
+
+Ví dụ:
+
+src/features/company/company.store.ts
+src/features/department/department.store.ts
+Company store
+type CompanyUiState = {
+  formState: EntityFormState<Company>;
+
+  openCreateDialog(): void;
+  openCreateFullscreen(): void;
+
+  openEditDialog(item: Company): void;
+  openEditFullscreen(item: Company): void;
+
+  openViewDialog(item: Company): void;
+  openViewFullscreen(item: Company): void;
+
+  closeForm(): void;
+};
+
+Default:
+
+formState: {
+  open: false,
+  mode: 'create',
+  presentation: 'dialog',
+  item: null,
+}
+Department store
+
+Tương tự:
+
+type DepartmentUiState = {
+  formState: EntityFormState<Department>;
+
+  openCreateDialog(): void;
+  openCreateFullscreen(): void;
+
+  openEditDialog(item: Department): void;
+  openEditFullscreen(item: Department): void;
+
+  openViewDialog(item: Department): void;
+  openViewFullscreen(item: Department): void;
+
+  closeForm(): void;
+};
+5. useDataCollection<T> cần bổ sung cache mutation helpers
+
+Trong:
+
+src/shared/datacollection/useDataCollection.ts
+
+Bổ sung return:
+
+appendItem(item: T): void;
+prependItem(item: T): void;
+replaceItem(item: T): void;
+removeItem(id: string): void;
+
+Yêu cầu:
+
+queryClient.setQueryData<PageResponse<T>>(fullQueryKey, ...)
+
+Behavior:
+
+appendItem:
+- append vào cuối items của current page
+- total + 1
+
+prependItem:
+- thêm vào đầu items của current page
+- total + 1
+
+replaceItem:
+- tìm theo getRowId
+- thay thế item trong current page
+
+removeItem:
+- remove theo id
+- total - 1
+
+Không invalidate query ngay sau create/update/delete nếu đang muốn giữ UX local current page.
+
+6. Form host
+
+Tạo:
+
+CompanyFormHost.tsx
+DepartmentFormHost.tsx
+
+FormHost nhận:
+
+type CompanyFormHostProps = {
+  state: EntityFormState<Company>;
+  onClose: () => void;
+  onSubmit: (values: CompanyFormValues) => void;
+  submitting?: boolean;
+};
+
+Nếu:
+
+state.presentation === 'dialog'
+
+render dạng modal dialog.
+
+Nếu:
+
+state.presentation === 'fullscreen'
+
+render dạng fullscreen overlay.
+
+Yêu cầu:
+
+- Không unmount CompanyTable/DepartmentTable
+- Form chỉ overlay lên list
+- Đóng form thì list vẫn giữ nguyên state
+7. TanStack Form
+
+Dùng:
+
+@tanstack/react-form
+
+Tạo:
+
+CompanyForm.tsx
+DepartmentForm.tsx
+CompanyFormValues
+export type CompanyFormValues = {
+  code: string;
+  name: string;
+  taxCode?: string;
+  status: 'ACTIVE' | 'INACTIVE';
+};
+DepartmentFormValues
+export type DepartmentFormValues = {
+  companyId: string;
+  companyName: string;
+  code: string;
+  name: string;
+  managerName?: string;
+  status: 'ACTIVE' | 'INACTIVE';
+};
+
+Form yêu cầu:
+
+- mode create/edit/view
+- defaultValues lấy từ item nếu edit/view
+- nếu create thì dùng empty default values
+- view mode thì readonly toàn bộ field
+- edit mode thì không cho sửa code nếu muốn
+- validation:
+  - code required
+  - name required
+  - companyId required đối với Department
+
+Submit:
+
+form.handleSubmit()
+
+Không dùng useState thủ công cho từng field.
+
+8. CompanyTable tích hợp form
+
+Trong CompanyTable.tsx:
+
+Yêu cầu:
+
+- gọi useCompanyUiStore để lấy formState/open/close actions
+- columns có actions:
+  - View Dialog
+  - Edit Dialog
+  - Edit Fullscreen
+  - Delete
+- toolbar có:
+  - New Dialog
+  - New Fullscreen
+  - Delete Selected
+  - Keyword search
+- createMutation:
+  - onSuccess(created) => dc.appendItem(created); closeForm()
+- updateMutation:
+  - onSuccess(updated) => dc.replaceItem(updated); closeForm()
+- deleteMutation:
+  - onSuccess(_, id) => dc.removeItem(id)
+
+Không invalidate ngay sau create/update/delete, để giữ current page UX.
+
+9. DepartmentTable tích hợp form
+
+Tương tự CompanyTable, nhưng thêm:
+
+- nhận prop companyId?: string
+- khi create department:
+  - defaultCompanyId lấy từ companyId hiện tại nếu có
+- queryFn append filter companyId vào params.filters
+
+Create success:
+
+dc.appendItem(createdDepartment)
+closeForm()
+
+Update success:
+
+dc.replaceItem(updatedDepartment)
+closeForm()
+
+Delete success:
+
+dc.removeItem(id)
+10. Screen giữ vai trò orchestration nhẹ
+CompanyScreen
+- render title
+- render CompanyTable
+- không chứa TanStack Table logic
+- không chứa form state nếu đã dùng Zustand trong CompanyTable
+DepartmentScreen
+- render title
+- có input companyId filter
+- render DepartmentTable companyId={companyId}
+11. UI behavior bắt buộc
+Khi mở Dialog
+- list vẫn hiển thị phía sau
+- không reset page/filter/sort
+- đóng dialog quay về đúng trạng thái list
+Khi mở Fullscreen
+- render fullscreen overlay
+- không chuyển route
+- không unmount list
+- đóng fullscreen quay lại đúng trạng thái list
+Khi create thành công
+- append item mới vào current page
+- total tăng 1
+- không refetch ngay
+- item mới xuất hiện ngay ở trang hiện tại
+Khi edit thành công
+- replace item trong current page
+- giữ nguyên page/filter/sort
+Khi delete thành công
+- remove item khỏi current page
+- total giảm 1
+12. File structure mong muốn
+src/shared/types/form.types.ts
+src/shared/datacollection/useDataCollection.ts
+src/shared/table/useAppTable.ts
+src/shared/table/TablePagination.tsx
+
+src/features/company/
+ ├── company.types.ts
+ ├── company.api.ts
+ ├── company.store.ts
+ ├── company.columns.tsx
+ ├── CompanyTableToolbar.tsx
+ ├── CompanyForm.tsx
+ ├── CompanyFormHost.tsx
+ ├── CompanyTable.tsx
+ └── CompanyScreen.tsx
+
+src/features/department/
+ ├── department.types.ts
+ ├── department.api.ts
+ ├── department.store.ts
+ ├── department.columns.tsx
+ ├── DepartmentTableToolbar.tsx
+ ├── DepartmentForm.tsx
+ ├── DepartmentFormHost.tsx
+ ├── DepartmentTable.tsx
+ └── DepartmentScreen.tsx
+13. Mock API yêu cầu
+
+Nếu chưa có backend, tạo mock API in-memory.
+
+API cần có:
+
+search(params: PageRequest): Promise<PageResponse<T>>;
+create(values): Promise<T>;
+update(id, values): Promise<T>;
+delete(id): Promise<void>;
+
+Search phải xử lý tối thiểu:
+
+- keyword
+- pagination
+- sorting đơn giản
+- filter companyId cho Department
+14. Chất lượng code
+
+Bắt buộc:
+
+- TypeScript strict-friendly
+- Không dùng any bừa bãi
+- Tách file rõ ràng
+- Zustand store nhỏ theo feature
+- Không dùng global table store
+- Không tạo Generic DataTable<T>
+- CompanyTable/DepartmentTable tự render <table>
+- useDataCollection không biết TanStack Table
+- useAppTable mới là TanStack Table adapter
+- Form dùng TanStack Form
+- Mutation cập nhật cache local qua dc.appendItem/replaceItem/removeItem
+- Không invalidate/refetch ngay sau create/update/delete
+15. Output mong muốn
+
+Hãy sinh đầy đủ code cho các file trên để ứng dụng chạy được bằng Vite React TypeScript.
+
+Luồng test:
+
+1. Mở CompanyScreen
+2. Sort/filter/page
+3. Bấm New Dialog
+4. Tạo company mới
+5. Đóng form
+6. Dữ liệu vẫn ở page/filter/sort hiện tại
+7. Company mới append vào trang hiện tại
+
+8. Bấm Edit Fullscreen
+9. Sửa name
+10. Save
+11. Row hiện tại được replace ngay, không reload list
+
+12. Delete row
+13. Row biến mất khỏi trang hiện tại
+
+14. DepartmentScreen tương tự
+15. Department create tự nhận default companyId nếu đang filter companyId
+
+Chốt câu ngắn cho Claude:
+
+```txt
+DataCollection giữ data state.
+AppTable bind TanStack Table.
+Table nghiệp vụ tự render UI.
+Form dùng TanStack Form.
+Form state dùng Zustand theo feature.
+Dialog/fullscreen là overlay, không unmount list.
+Create append vào current page cache.
+Edit replace current row.
+Delete remove current row.
