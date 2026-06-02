@@ -1,4 +1,10 @@
 import type { PageRequest } from '@/shared/table/table.types';
+import { getAuthToken } from '@/store/auth.store';
+
+function authHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export function buildSearchParams(params: PageRequest): URLSearchParams {
   const sp = new URLSearchParams();
@@ -49,7 +55,7 @@ async function readError(res: Response): Promise<HttpError> {
 }
 
 export async function httpGet<T>(url: string): Promise<T> {
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  const res = await fetch(url, { headers: { Accept: 'application/json', ...authHeaders() } });
   if (!res.ok) throw await readError(res);
   return res.json() as Promise<T>;
 }
@@ -64,6 +70,7 @@ export async function httpJson<T>(
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
+      ...authHeaders(),
     },
     body: JSON.stringify(body ?? {}),
   });
@@ -72,6 +79,6 @@ export async function httpJson<T>(
 }
 
 export async function httpDelete(url: string): Promise<void> {
-  const res = await fetch(url, { method: 'DELETE' });
+  const res = await fetch(url, { method: 'DELETE', headers: { ...authHeaders() } });
   if (!res.ok && res.status !== 204) throw await readError(res);
 }

@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Moon, RotateCcw, Sun, TableProperties } from 'lucide-react';
+import { LogOut, Moon, RotateCcw, Sun, TableProperties } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useAuthStore } from '@/store/auth.store';
 
 export function AppHeader() {
   return (
@@ -36,11 +44,53 @@ export function AppHeader() {
           <RotateCcw className="h-3.5 w-3.5 sm:mr-1.5" aria-hidden />
           <span className="hidden sm:inline">Reload</span>
         </Button>
-        <Avatar size="sm" className="hidden sm:inline-flex">
-          <AvatarFallback title="User profile">U</AvatarFallback>
-        </Avatar>
+        <UserMenu />
       </div>
     </header>
+  );
+}
+
+function UserMenu() {
+  const navigate = useNavigate();
+  const { account, logout } = useAuthStore();
+  const initial = (account?.login ?? 'U').charAt(0).toUpperCase();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="outline" size="icon" className="rounded-full" aria-label="User menu">
+          <Avatar size="sm">
+            <AvatarFallback>{initial}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <div className="px-2 py-1.5">
+          <div className="truncate text-sm font-medium">{account?.login ?? '—'}</div>
+          {account?.email ? (
+            <div className="truncate text-xs text-muted-foreground">{account.email}</div>
+          ) : null}
+          <div className="mt-1 flex flex-wrap gap-1">
+            {account?.authorities?.map((a) => (
+              <span
+                key={a}
+                className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              >
+                {a.replace('ROLE_', '')}
+              </span>
+            ))}
+          </div>
+        </div>
+        <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+          <LogOut className="mr-2 h-4 w-4" aria-hidden /> Đăng xuất
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

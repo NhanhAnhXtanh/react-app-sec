@@ -22,6 +22,9 @@ import { MetaSyncFormRoute } from '@/features/metadata/metasync/MetaSyncFormRout
 import { NotFound } from '@/router/NotFound';
 import { MetaPackListPage } from '@/features/metapack/pages/MetaPackListPage';
 import { MetaPackFormPage } from '@/features/metapack/pages/MetaPackFormPage';
+import { LoginPage } from '@/features/auth/LoginPage';
+import { AccessDeniedPage } from '@/features/auth/AccessDeniedPage';
+import { ProtectedRoute } from '@/router/ProtectedRoute';
 
 const organizationDialogChildren: RouteObject[] = [
   {
@@ -123,8 +126,14 @@ const metaSyncDialogChildren: RouteObject[] = [
 ];
 
 export const routes: RouteObject[] = [
+  { path: '/login', element: <LoginPage /> },
+  { path: '/access-denied', element: <AccessDeniedPage /> },
   {
-    element: <AppLayout />,
+    element: (
+      <ProtectedRoute>
+        <AppLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <Navigate to="/meta-sources" replace /> },
       {

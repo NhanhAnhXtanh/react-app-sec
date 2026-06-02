@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
 import { ThemeProvider } from '@/components/theme-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { AuthBootstrap } from '@/features/auth/AuthBootstrap';
 import { App } from './App';
 import './index.css';
 
@@ -15,7 +16,9 @@ ReactDOM.createRoot(rootEl).render(
     <ThemeProvider>
       <TooltipProvider delayDuration={200}>
         <QueryClientProvider client={queryClient}>
-          <App />
+          <AuthBootstrap>
+            <App />
+          </AuthBootstrap>
         </QueryClientProvider>
       </TooltipProvider>
     </ThemeProvider>
